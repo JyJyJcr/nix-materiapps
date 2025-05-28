@@ -13,6 +13,11 @@ in stdenv.mkDerivation {
 
   nativeBuildInputs = [ cmake ];
 
+  buildInputs = [ openblas ]
+    ++ (lib.optionals stdenv.cc.isClang [ llvmPackages.openmp ]);
+
+  #propagatedBuildInputs = (lib.optionals stdenv.cc.isGNU [ ])
+
   # buildInputs = (lib.optionals stdenv.cc.isGNU [ gcc openblas ])
   #   ++ (lib.optionals stdenv.cc.isClang [
   #     # TODO: This may mismatch the LLVM version sin the stdenv, see #79818.
