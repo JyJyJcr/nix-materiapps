@@ -43,8 +43,8 @@ in stdenv.mkDerivation {
   src = fetchFromGitHub {
     owner = "JyJyJcr";
     repo = "ITensor";
-    rev = "c7ff682147329992594b6c96b3f49514d08ea7b0";
-    hash = "sha256-9FFEwrRgcU4Ys4yjqEBNl2G1AsGzL77/c4OyAkl6Khg=";
+    rev = "01c486d10830a099142f8012a972b620c4bbd48a";
+    hash = "sha256-MEJvVzpzGfF+qIl5/pLlU8FSeKjIwVd610si1Xev6R8=";
   };
 
   cmakeFlags = [
