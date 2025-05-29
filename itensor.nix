@@ -1,9 +1,11 @@
-{ stdenv, cmake, lib, gcc, openblas, debug ? false, llvmPackages
-, fetchFromGitHub }:
+{ stdenv, cmake, lib, openblas, llvmPackages, fetchFromGitHub, debug ? false
+, openmp ? null }:
 
 let
   name = "itensor";
-
+  openblas_default_use_openmp = builtins.elem "USE_OPENMP=1" openblas.makeFlags;
+  #openblas_default_use_thread = builtins.elem "USE_THREAD=1" openblas.makeFlags;
+  # possible values: (0,0),(0,1),(1,1)
   build-type = if debug then "Debug" else "Release";
 in stdenv.mkDerivation {
   pname = "${name}";
@@ -13,9 +15,21 @@ in stdenv.mkDerivation {
 
   nativeBuildInputs = [ cmake ];
 
-  buildInputs = [ openblas ] ++ (lib.optionals
-    (stdenv.cc.isClang && builtins.elem "USE_OPENMP=1" openblas.makeFlags)
-    [ llvmPackages.openmp ]);
+  buildInputs = lib.optionals (openmp == null) [ openblas ]
+    ++ lib.optionals (openmp != null) ([ openmp ]
+      ++ (lib.optionals (openblas_default_use_openmp) [
+        openblas.override
+        { openmp = openmp; }
+      ]) ++ (lib.optionals (!openblas_default_use_openmp) [
+        openblas.override
+        { singleThreaded = true; }
+      ]));
+  #   openblas.override { openmp = openmp }
+  #   openmp
+  # ];
+  # this is completely safe because:
+  # if openblas is built with openmp, it is guaranteed to use same openmp with itensor
+  # if openblas is built without openmp, of course no problem!
 
   #propagatedBuildInputs = (lib.optionals stdenv.cc.isGNU [ ])
 
@@ -29,8 +43,8 @@ in stdenv.mkDerivation {
   src = fetchFromGitHub {
     owner = "JyJyJcr";
     repo = "ITensor";
-    rev = "6037d13bd353b843ab7b3649b1a968bcb27e2881";
-    hash = "sha256-xIczneEmNwX+kdEhxtW3D9DuYMOcTuu+BQEcx4QMWas=";
+    rev = "c7ff682147329992594b6c96b3f49514d08ea7b0";
+    hash = "sha256-9FFEwrRgcU4Ys4yjqEBNl2G1AsGzL77/c4OyAkl6Khg=";
   };
 
   cmakeFlags = [
@@ -38,7 +52,7 @@ in stdenv.mkDerivation {
     "-DCMAKE_EXPORT_COMPILE_COMMANDS=YES"
     "-DNIX_LIBRARY_NAME=${name}"
     # other flags...
-  ];
+  ] ++ lib.optionals (openmp != null) [ "-DITENSOR_USE_OPENMP=ON" ];
 
   meta = {
     description =
