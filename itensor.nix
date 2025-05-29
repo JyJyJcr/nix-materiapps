@@ -13,8 +13,9 @@ in stdenv.mkDerivation {
 
   nativeBuildInputs = [ cmake ];
 
-  buildInputs = [ openblas ]
-    ++ (lib.optionals stdenv.cc.isClang [ llvmPackages.openmp ]);
+  buildInputs = [ openblas ] ++ (lib.optionals
+    (stdenv.cc.isClang && builtins.elem "USE_OPENMP=1" openblas.makeFlags)
+    [ llvmPackages.openmp ]);
 
   #propagatedBuildInputs = (lib.optionals stdenv.cc.isGNU [ ])
 
