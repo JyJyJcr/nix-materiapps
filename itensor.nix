@@ -1,12 +1,19 @@
 { stdenv, cmake, lib, openblas, llvmPackages, fetchFromGitHub, debug ? false
-, openmp ? null }:
+, openmp ? null, openblas_with_openmp ? null }:
 
 let
   name = "itensor";
-  openblas_default_use_openmp = builtins.elem "USE_OPENMP=1" openblas.makeFlags;
+  #openblas_default_use_openmp = builtins.elem "USE_OPENMP=1" openblas.makeFlags;
   #openblas_default_use_thread = builtins.elem "USE_THREAD=1" openblas.makeFlags;
   # possible values: (0,0),(0,1),(1,1)
   build-type = if debug then "Debug" else "Release";
+
+  buildInputs =
+    (lib.optionals (openmp != null && openblas_with_openmp != null) [
+      openmp
+      openblas_with_openmp
+    ]) ++ (lib.optionals (!(openmp != null && openblas_with_openmp != null))
+      [ openblas ]);
 in stdenv.mkDerivation {
   pname = "${name}";
   version = "3.2.0";
@@ -15,15 +22,19 @@ in stdenv.mkDerivation {
 
   nativeBuildInputs = [ cmake ];
 
-  buildInputs = lib.optionals (openmp == null) [ openblas ]
-    ++ lib.optionals (openmp != null) ([ openmp ]
-      ++ (lib.optionals (openblas_default_use_openmp) [
-        openblas.override
-        { openmp = openmp; }
-      ]) ++ (lib.optionals (!openblas_default_use_openmp) [
-        openblas.override
-        { singleThreaded = true; }
-      ]));
+  buildInputs = buildInputs;
+
+  propagatedBuildInputs = buildInputs;
+
+  # lib.optionals (openmp == null) [ openblas ]
+  # ++ lib.optionals (openmp != null) ([ openmp ]
+  #   ++ (lib.optionals (openblas_default_use_openmp) [
+  #     openblas.override
+  #     { openmp = openmp; }
+  #   ]) ++ (lib.optionals (!openblas_default_use_openmp) [
+  #     openblas.override
+  #     { singleThreaded = true; }
+  #   ]));
   #   openblas.override { openmp = openmp }
   #   openmp
   # ];
@@ -52,7 +63,8 @@ in stdenv.mkDerivation {
     "-DCMAKE_EXPORT_COMPILE_COMMANDS=YES"
     "-DNIX_LIBRARY_NAME=${name}"
     # other flags...
-  ] ++ lib.optionals (openmp != null) [ "-DITENSOR_USE_OPENMP=ON" ];
+  ] ++ lib.optionals (openmp != null && openblas_with_openmp != null)
+    [ "-DITENSOR_USE_OPENMP=ON" ];
 
   meta = {
     description =
