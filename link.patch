@@ -1,0 +1,332 @@
+diff --git a/COUPLE/CMakeLists.txt b/COUPLE/CMakeLists.txt
+index 70cfbff61..b84a6e79e 100644
+--- a/COUPLE/CMakeLists.txt
++++ b/COUPLE/CMakeLists.txt
+@@ -7,10 +7,12 @@ qe_enable_cuda_fortran("${src_couple}")
+ qe_add_library(qe_couple ${src_couple})
+ target_link_libraries(qe_couple
+     PRIVATE
++        qe_device_lapack
+         qe_modules
+         qe_lax
+ 	    qe_fftx
+-        qe_cpv)
++        qe_cpv
++        qe_pw)
+ 
+ ###########################################################
+ 
+diff --git a/EPW/CMakeLists.txt b/EPW/CMakeLists.txt
+index 17a22312b..72dc11a0b 100644
+--- a/EPW/CMakeLists.txt
++++ b/EPW/CMakeLists.txt
+@@ -69,7 +69,9 @@ target_link_libraries(
+             qe_upflib
+             qe_fftx
+             qe_elpa
+-            qe_xclib)
++            qe_xclib
++            qe_device_lapack
++            qe_kssolver_davidson)
+ 
+ ###########################################################
+ # epw.x
+diff --git a/FFTXlib/src/CMakeLists.txt b/FFTXlib/src/CMakeLists.txt
+index 246a4acfa..0dfd2bfe7 100644
+--- a/FFTXlib/src/CMakeLists.txt
++++ b/FFTXlib/src/CMakeLists.txt
+@@ -48,6 +48,7 @@ target_link_libraries(qe_fftx
+     PRIVATE
+         qe_fftx_c
+         qe_ext_fft
++        qe_utilx
+         qe_openmp_fortran
+         qe_mpi_fortran)
+ if(QE_ENABLE_CUDA)
+diff --git a/GWW/CMakeLists.txt b/GWW/CMakeLists.txt
+index fb534658c..d07a043fb 100644
+--- a/GWW/CMakeLists.txt
++++ b/GWW/CMakeLists.txt
+@@ -177,7 +177,9 @@ target_link_libraries(qe_gww
+     PRIVATE
+         qe_gww_minpack
+         qe_fftx
+-        qe_modules)
++        qe_modules
++        qe_device_lapack
++        qe_lax)
+ 
+ qe_add_library(qe_gww_pw4gww ${src_pw4gww})
+ target_link_libraries(qe_gww_pw4gww
+@@ -191,7 +193,9 @@ target_link_libraries(qe_gww_pw4gww
+         qe_upflib
+         qe_lax
+         qe_gww_minpack
+-        qe_xclib)
++        qe_xclib
++        qe_device_lapack
++        qe_phonon_gamma)
+ 
+ qe_add_library(qe_gww_bse ${src_bse})
+ target_link_libraries(qe_gww_bse
+@@ -202,7 +206,8 @@ target_link_libraries(qe_gww_bse
+         qe_gww_pw4gww
+         qe_upflib
+         qe_fftx
+-        qe_xclib)
++        qe_xclib
++        qe_device_lapack)
+ 
+ qe_add_library(qe_gww_head ${src_head})
+ target_link_libraries(qe_gww_head
+@@ -213,7 +218,9 @@ target_link_libraries(qe_gww_head
+         qe_phonon_ph
+         qe_upflib
+         qe_fftx
+-        qe_xclib)
++        qe_xclib
++        qe_device_lapack
++        qe_gww_minpack)
+ 
+ qe_add_library(qe_gww_minpack ${src_minpack})
+ target_link_libraries(qe_gww_minpack
+@@ -228,18 +235,21 @@ target_link_libraries(qe_gww_simple
+         qe_modules
+         qe_upflib
+         qe_fftx
+-        qe_xclib)
++        qe_xclib
++        qe_device_lapack)
+ 
+ qe_add_library(qe_gww_simplebse ${src_simple_bse})
+ target_link_libraries(qe_gww_simplebse
+     PRIVATE
+-        qe_modules)
++        qe_modules
++        qe_device_lapack)
+ 
+ qe_add_library(qe_gww_simpleip ${src_simple_ip})
+ target_link_libraries(qe_gww_simpleip
+     PRIVATE
+         qe_modules
+-        qe_pw)
++        qe_pw
++        qe_device_lapack)
+ 
+ ###########################################################
+ # graph.x
+diff --git a/HP/CMakeLists.txt b/HP/CMakeLists.txt
+index ae406de38..a4c22111a 100644
+--- a/HP/CMakeLists.txt
++++ b/HP/CMakeLists.txt
+@@ -52,7 +52,8 @@ target_link_libraries(qe_hp
+         qe_modules
+         qe_fftx
+         qe_upflib
+-        qe_xclib)
++        qe_xclib
++        qe_device_lapack)
+ 
+ ###########################################################
+ # hp.x
+diff --git a/KCW/src/CMakeLists.txt b/KCW/src/CMakeLists.txt
+index 8b6808240..7c741fb5a 100644
+--- a/KCW/src/CMakeLists.txt
++++ b/KCW/src/CMakeLists.txt
+@@ -64,7 +64,8 @@ target_link_libraries(
+             qe_modules
+             qe_fftx
+             qe_upflib
+-            qe_xclib)
++            qe_xclib
++            qe_device_lapack)
+ 
+ ###########################################################
+ # kcw.x
+diff --git a/KS_Solvers/CMakeLists.txt b/KS_Solvers/CMakeLists.txt
+index ebf1eedde..b053697cb 100644
+--- a/KS_Solvers/CMakeLists.txt
++++ b/KS_Solvers/CMakeLists.txt
+@@ -94,6 +94,7 @@ target_link_libraries(qe_kssolver_davidson
+ qe_add_library(qe_kssolver_davidsonrci ${src_davidson_rci})
+ target_link_libraries(qe_kssolver_davidsonrci
+     PRIVATE
++        qe_device_lapack
+         qe_lax
+         qe_utilx
+         qe_mpi_fortran)
+@@ -101,6 +102,7 @@ target_link_libraries(qe_kssolver_davidsonrci
+ qe_add_library(qe_kssolver_cg ${src_cg})
+ target_link_libraries(qe_kssolver_cg
+     PRIVATE
++        qe_device_lapack
+         qe_lax
+         qe_openacc_fortran
+         qe_utilx
+@@ -110,6 +112,7 @@ target_link_libraries(qe_kssolver_cg
+ qe_add_library(qe_kssolver_ppcg ${src_ppcg})
+ target_link_libraries(qe_kssolver_ppcg
+     PRIVATE
++        qe_device_lapack
+         qe_scalapack
+         qe_openacc_fortran
+         qe_openmp_fortran
+@@ -120,6 +123,7 @@ target_link_libraries(qe_kssolver_ppcg
+ qe_add_library(qe_kssolver_dense ${src_dense})
+ target_link_libraries(qe_kssolver_dense
+     PRIVATE
++        qe_device_lapack
+         qe_openacc_fortran
+         qe_lax
+         qe_utilx
+@@ -148,6 +152,7 @@ target_link_libraries(qe_kssolver_paro
+ qe_add_library(qe_kssolver_rmmdiis ${src_rmmdiis})
+ target_link_libraries(qe_kssolver_rmmdiis
+     PRIVATE
++    qe_device_lapack
+ 	qe_lax
+         qe_openacc_fortran
+         qe_utilx
+diff --git a/NEB/CMakeLists.txt b/NEB/CMakeLists.txt
+index 71be7c405..2d0dad012 100644
+--- a/NEB/CMakeLists.txt
++++ b/NEB/CMakeLists.txt
+@@ -33,7 +33,8 @@ target_link_libraries(qe_neb
+         qe_modules
+         qe_upflib
+         qe_fftx
+-        qe_xclib)
++        qe_xclib
++        qe_device_lapack)
+ 
+ ###########################################################
+ # neb.x
+diff --git a/PHonon/CMakeLists.txt b/PHonon/CMakeLists.txt
+index f7bdaccd8..00ca2d8ee 100644
+--- a/PHonon/CMakeLists.txt
++++ b/PHonon/CMakeLists.txt
+@@ -224,7 +224,10 @@ target_link_libraries(qe_phonon_ph
+         qe_fftx
+         qe_dftd3
+         qe_fox
+-        qe_xclib)
++        qe_xclib
++        qe_device_lapack
++        qe_lax
++        qe_kssolver_cg)
+ 
+ qe_add_library(qe_phonon_phaux ${src_phaux})
+ target_link_libraries(qe_phonon_phaux
+@@ -241,7 +244,8 @@ target_link_libraries(qe_phonon_gamma
+         qe_upflib
+         qe_fftx
+         qe_lax
+-        qe_xclib)
++        qe_xclib
++        qe_device_lapack)
+ 
+ qe_add_library(qe_phonon_fd ${src_fd})
+ target_link_libraries(qe_phonon_fd
+diff --git a/PP/CMakeLists.txt b/PP/CMakeLists.txt
+index 75edbd249..c18a95f7a 100644
+--- a/PP/CMakeLists.txt
++++ b/PP/CMakeLists.txt
+@@ -65,7 +65,8 @@ target_link_libraries(qe_pp
+         qe_fftx
+         qe_upflib
+         qe_lax
+-        qe_xclib)
++        qe_xclib
++        qe_device_lapack)
+ 
+ ###########################################################
+ # pp.x
+diff --git a/TDDFPT/CMakeLists.txt b/TDDFPT/CMakeLists.txt
+index 9ca7347a8..7bb609798 100644
+--- a/TDDFPT/CMakeLists.txt
++++ b/TDDFPT/CMakeLists.txt
+@@ -72,7 +72,9 @@ target_link_libraries(qe_tddfpt
+         qe_modules
+         qe_upflib
+         qe_fftx
+-        qe_xclib)
++        qe_xclib
++        qe_device_lapack
++        qe_lax)
+ 
+ ###########################################################
+ # turbo_lanczos.x
+diff --git a/UtilXlib/CMakeLists.txt b/UtilXlib/CMakeLists.txt
+index b168947ef..2756739ad 100644
+--- a/UtilXlib/CMakeLists.txt
++++ b/UtilXlib/CMakeLists.txt
+@@ -55,7 +55,8 @@ set(src_device_lapack
+ qe_enable_cuda_fortran("${src_device_lapack}")
+ qe_add_library(qe_device_lapack ${src_device_lapack})
+ target_link_libraries(qe_device_lapack
+-    PRIVATE
++#    PRIVATE
++    PUBLIC
+         qe_openacc_fortran
+         qe_lapack
+         qe_openmp_fortran
+diff --git a/XClib/CMakeLists.txt b/XClib/CMakeLists.txt
+index 2feba2375..ea251a743 100644
+--- a/XClib/CMakeLists.txt
++++ b/XClib/CMakeLists.txt
+@@ -29,10 +29,11 @@ target_link_libraries(qe_xclib
+     PUBLIC
+         qe_openacc_fortran
+         qe_mpi_fortran
++        qe_libbeef
+     PRIVATE
+         qe_openmp_fortran
+         qe_external_libxc
+-        qe_libbeef)
++        )
+ 
+ ###########################################################
+ # libbeef target
+diff --git a/XSpectra/CMakeLists.txt b/XSpectra/CMakeLists.txt
+index 010a8e920..f28024f0c 100644
+--- a/XSpectra/CMakeLists.txt
++++ b/XSpectra/CMakeLists.txt
+@@ -44,7 +44,8 @@ target_link_libraries(qe_xspectra
+         qe_modules
+         qe_upflib
+         qe_fftx
+-        qe_xclib)
++        qe_xclib
++        qe_device_lapack)
+ 
+ ###########################################################
+ # xspectra.x
+diff --git a/atomic/CMakeLists.txt b/atomic/CMakeLists.txt
+index 1b2f8787b..ae3922a54 100644
+--- a/atomic/CMakeLists.txt
++++ b/atomic/CMakeLists.txt
+@@ -100,9 +100,11 @@ set(sources
+ qe_add_library(qe_atomic ${sources})
+ target_link_libraries(qe_atomic
+     PRIVATE
++        qe_device_lapack
+         qe_upflib
+         qe_modules
+-        qe_xclib)
++        qe_xclib
++        )
+ 
+ ###########################################################
+ # ld1.x
+diff --git a/dft-d3/CMakeLists.txt b/dft-d3/CMakeLists.txt
+index 87db7b005..d96ab2898 100644
+--- a/dft-d3/CMakeLists.txt
++++ b/dft-d3/CMakeLists.txt
+@@ -11,6 +11,7 @@ target_link_libraries(qe_dftd3
+     PUBLIC
+         qe_openacc_fortran
+     PRIVATE
++    qe_lax
+         qe_modules
+         qe_upflib)
+ 

@@ -1,5 +1,7 @@
 { lib, stdenv, fetchFromGitLab, fetchFromGitHub, git, cmake, gfortran
-, pkg-config, fftw, blas, lapack, scalapack, hdf5, libxc, enableMpi ? true, mpi,
+, pkg-config, fftw, blas, lapack, scalapack, hdf5-fortran, libxc
+, enableMpi ? true, mpi, llvmPackages,
+# wannier90, libmbd,
 }:
 
 assert !blas.isILP64;
@@ -51,8 +53,8 @@ in stdenv.mkDerivation rec {
   src = fetchFromGitHub {
     owner = "JyJyJcr";
     repo = "q-e";
-    rev = "500de340b820e1cb8c05f2d8bb8fced102f377c1";
-    hash = "sha256-o1CjIuJCTtIud4zeHROksK1Ub9RL/OB8GecAQOIGf1s=";
+    rev = "7fe8102023e5ba60f0d3378dc2e72ad12343ae4c";
+    hash = "sha256-8Y5LLbEdFU5uzkK4SlrXeYMVtVD9K88nrlZOE/ceyDs=";
   };
 
   # add git submodules manually and fix pkg-config file
@@ -71,9 +73,9 @@ in stdenv.mkDerivation rec {
       --replace "qe_git_submodule_update(external/qe-gipaw)" ""
 
     ${builtins.toString (builtins.attrValues (builtins.mapAttrs (name: val: ''
-      echo "${val}/ >> external/${name}/"
+      # echo "${val}/ >> external/${name}/"
       cp -r ${val}/. external/${name}/
-      echo "what? $(ls external/${name}/src/)"
+      # echo "what? $(ls external/${name}/src/)"
       chmod -R +rwx external/${name}
     '') gitSubmodules))}
 
@@ -81,29 +83,36 @@ in stdenv.mkDerivation rec {
       --replace 'libdir="''${prefix}/@CMAKE_INSTALL_LIBDIR@"' 'libdir="@CMAKE_INSTALL_FULL_LIBDIR@"'
   '';
 
-  # patches = [
-  #   # this patch reverts commit 5fb5a679, which enforced static library builds.
-  #   ./findLibxc.patch
-  # ];
+  patches = [
+    # this patch reverts commit 5fb5a679, which enforced static library builds.
+    ./findLibxc.patch
+    ./link.patch
+  ];
+
+  outputs = [ "out" "dev" ];
 
   passthru = { inherit mpi; };
 
   nativeBuildInputs = [ cmake gfortran git pkg-config ];
 
-  buildInputs = [ fftw blas lapack libxc hdf5 ]
-    ++ lib.optional enableMpi scalapack;
+  buildInputs = [ fftw blas lapack libxc hdf5-fortran ]
+    ++ lib.optionals stdenv.cc.isClang [
+      # TODO: This may mismatch the LLVM version sin the stdenv, see #79818.
+      llvmPackages.openmp
+    ] ++ lib.optional enableMpi scalapack;
+
+  #    ++ lib.optional enableMpi mpi;
 
   propagatedBuildInputs = lib.optional enableMpi mpi;
   propagatedUserEnvPkgs = lib.optional enableMpi mpi;
 
   cmakeFlags = [
-    #"-DBUILD_SHARED_LIBS=ON"
-    #"-DWANNIER90_ROOT=${wannier90}"
-    #"-DMBD_ROOT=${libmbd}"
+    "-DBUILD_SHARED_LIBS=ON"
+    "-DBLA_PREFER_PKGCONFIG=ON"
     "-DQE_ENABLE_OPENMP=ON"
-    #"-DQE_ENABLE_LIBXC=ON"
-    #"-DQE_ENABLE_HDF5=ON"
-    #"-DQE_ENABLE_PLUGINS=pw2qmcpack"
+    "-DQE_ENABLE_LIBXC=ON"
+    "-DQE_ENABLE_HDF5=ON"
+    "-DQE_ENABLE_PLUGINS=pw2qmcpack"
   ] ++ lib.optionals enableMpi [
     "-DQE_ENABLE_MPI=ON"
     "-DQE_ENABLE_MPI_MODULE=ON"
