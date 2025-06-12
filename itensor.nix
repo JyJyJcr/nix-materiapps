@@ -1,5 +1,5 @@
-{ stdenv, cmake, lib, openblas, llvmPackages, fetchFromGitHub, debug ? false
-, openmp ? null, openblas_with_openmp ? null }:
+{ stdenv, cmake, pkg-config, lib, blas, lapack, llvmPackages, fetchFromGitHub
+, debug ? false, openmp ? null }:
 
 let
   name = "itensor";
@@ -8,19 +8,14 @@ let
   # possible values: (0,0),(0,1),(1,1)
   build-type = if debug then "Debug" else "Release";
 
-  buildInputs =
-    (lib.optionals (openmp != null && openblas_with_openmp != null) [
-      openmp
-      openblas_with_openmp
-    ]) ++ (lib.optionals (!(openmp != null && openblas_with_openmp != null))
-      [ openblas ]);
+  buildInputs = (lib.optionals (openmp != null) [ openmp ]) ++ [ blas lapack ];
 in stdenv.mkDerivation {
   pname = "${name}";
   version = "3.2.0";
 
   outputs = [ "dev" "out" ];
 
-  nativeBuildInputs = [ cmake ];
+  nativeBuildInputs = [ cmake pkg-config ];
 
   buildInputs = buildInputs;
 
@@ -60,11 +55,11 @@ in stdenv.mkDerivation {
 
   cmakeFlags = [
     "-DCMAKE_BUILD_TYPE=${build-type}"
+    "-DBLA_PREFER_PKGCONFIG=ON"
     "-DCMAKE_EXPORT_COMPILE_COMMANDS=YES"
     "-DNIX_LIBRARY_NAME=${name}"
     # other flags...
-  ] ++ lib.optionals (openmp != null && openblas_with_openmp != null)
-    [ "-DITENSOR_USE_OPENMP=ON" ];
+  ] ++ lib.optionals (openmp != null) [ "-DITENSOR_USE_OPENMP=ON" ];
 
   meta = {
     description =
