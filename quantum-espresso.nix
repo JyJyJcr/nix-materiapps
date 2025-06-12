@@ -113,11 +113,11 @@ in stdenv.mkDerivation rec {
     "-DQE_ENABLE_LIBXC=ON"
     "-DQE_ENABLE_HDF5=ON"
     "-DQE_ENABLE_PLUGINS=pw2qmcpack"
-  ] ++ lib.optionals enableMpi [
+  ] ++ (lib.optionals enableMpi [
     "-DQE_ENABLE_MPI=ON"
     "-DQE_ENABLE_MPI_MODULE=ON"
     "-DQE_ENABLE_SCALAPACK=ON"
-  ];
+  ]) ++ (lib.optionals (!enableMpi) [ "-DQE_ENABLE_MPI=OFF" ]);
 
   meta = with lib; {
     description =
