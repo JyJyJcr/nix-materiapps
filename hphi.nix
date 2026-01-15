@@ -1,5 +1,5 @@
 { stdenv, cmake, pkg-config, lib, blas, lapack, llvmPackages, fetchurl, gfortran
-, debug ? false, mpi, scalapack, openmp ? null }:
+, debug ? false, mpi, scalapack, is_mpi ? false, openmp ? null }:
 
 let
   name = "hphi";
@@ -9,8 +9,8 @@ let
   # possible values: (0,0),(0,1),(1,1)
   #build-type = if debug then "Debug" else "Release";
 
-  buildInputs = (lib.optionals (openmp != null) [ openmp ])
-    ++ [ blas lapack mpi scalapack ];
+  buildInputs = [ blas lapack ] ++ (lib.optionals (openmp != null) [ openmp ])
+    ++ (lib.optionals (is_mpi) [ mpi scalapack ]);
 in stdenv.mkDerivation {
   pname = "${name}";
   version = ver;
@@ -23,7 +23,7 @@ in stdenv.mkDerivation {
 
   propagatedBuildInputs = buildInputs;
 
-  passthru = { inherit mpi; };
+  passthru = (lib.optionalAttrs is_mpi { inherit mpi; });
 
   # lib.optionals (openmp == null) [ openblas ]
   # ++ lib.optionals (openmp != null) ([ openmp ]
@@ -59,9 +59,11 @@ in stdenv.mkDerivation {
   cmakeFlags = [
     #"-DCMAKE_BUILD_TYPE=${build-type}"
     "-DBLA_PREFER_PKGCONFIG=ON"
+    "-DCMAKE_POLICY_VERSION_MINIMUM=3.5"
     #"-DCMAKE_EXPORT_COMPILE_COMMANDS=YES"
     #"-DNIX_LIBRARY_NAME=${name}"
     #"-DCMAKE_VERBOSE_MAKEFILE=1"
+  ] ++ lib.optionals (is_mpi) [
     "-DUSE_SCALAPACK=ON"
     "-DSCALAPACK_LIBRARIES=-lscalapack"
     # other flags...

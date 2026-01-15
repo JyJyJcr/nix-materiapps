@@ -1,6 +1,6 @@
-{ lib, stdenv, fetchFromGitLab, fetchFromGitHub, git, cmake, gfortran
+{ lib, gccStdenv, fetchFromGitLab, fetchFromGitHub, git, cmake, gfortran
 , pkg-config, fftw, blas, lapack, scalapack, hdf5-fortran, libxc
-, enableMpi ? true, mpi, llvmPackages,
+, enableMpi ? false, mpi,
 # wannier90, libmbd,
 }:
 
@@ -46,7 +46,7 @@ let
     };
   };
 
-in stdenv.mkDerivation rec {
+in gccStdenv.mkDerivation rec {
   version = "7.4.1";
   pname = "quantum-espresso";
 
@@ -95,11 +95,18 @@ in stdenv.mkDerivation rec {
 
   nativeBuildInputs = [ cmake gfortran git pkg-config ];
 
-  buildInputs = [ fftw blas lapack libxc hdf5-fortran ]
-    ++ lib.optionals stdenv.cc.isClang [
-      # TODO: This may mismatch the LLVM version sin the stdenv, see #79818.
-      llvmPackages.openmp
-    ] ++ lib.optional enableMpi scalapack;
+  buildInputs = [
+    fftw
+    blas
+    lapack
+    libxc
+    hdf5-fortran
+  ]
+  # ++ lib.optionals stdenv.cc.isClang [
+  #   # TODO: This may mismatch the LLVM version sin the stdenv, see #79818.
+  #   # llvmPackages.openmp
+  # ]
+    ++ lib.optional enableMpi scalapack;
 
   #    ++ lib.optional enableMpi mpi;
 
@@ -109,9 +116,9 @@ in stdenv.mkDerivation rec {
   cmakeFlags = [
     "-DBUILD_SHARED_LIBS=ON"
     "-DBLA_PREFER_PKGCONFIG=ON"
-    "-DQE_ENABLE_OPENMP=ON"
-    "-DQE_ENABLE_LIBXC=ON"
-    "-DQE_ENABLE_HDF5=ON"
+    "-DQE_ENABLE_OPENMP=OFF"
+    "-DQE_ENABLE_LIBXC=OFF"
+    "-DQE_ENABLE_HDF5=OFF"
     "-DQE_ENABLE_PLUGINS=pw2qmcpack"
   ] ++ (lib.optionals enableMpi [
     "-DQE_ENABLE_MPI=ON"
