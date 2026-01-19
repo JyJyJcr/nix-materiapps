@@ -1,36 +1,36 @@
 {
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/nixos-25.05";
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-25.11";
     flake-utils.url = "github:numtide/flake-utils";
+    nix-jyjyjcr = {
+      url = "github:jyjyjcr/nix-jyjyjcr/dev/alt-shell";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.flake-utils.follows = "flake-utils";
+    };
   };
 
-  outputs = { nixpkgs, flake-utils, ... }:
+  outputs = { nixpkgs, flake-utils, nix-jyjyjcr, ... }:
     flake-utils.lib.eachDefaultSystem (system:
       let
-        pkgs = import nixpkgs { inherit system; };
+        pkgs = import nixpkgs {
+          inherit system;
+          overlays = [ nix-jyjyjcr.overlays.${system}.default ];
+        };
         pkgs-itensor = pkgs.callPackage ./itensor.nix { };
         pkgs-hphi = pkgs.callPackage ./hphi.nix { };
-        pkgs-quantum-espresso = pkgs.callPackage ./quantum-espresso.nix { };
-
-        shell-pkgs = [
-          pkgs-itensor
-          pkgs-hphi
-          pkgs-quantum-espresso
-          pkgs.pkg-config
-          pkgs.cmake
-        ];
-        zshCompEnv = pkgs.buildEnv {
-          name = "zsh-comp";
-          paths = shell-pkgs;
-          pathsToLink = [ "/share/zsh" ];
-        };
+        #pkgs-quantum-espresso = pkgs.callPackage ./quantum-espresso.nix { };
       in {
         packages.itensor = pkgs-itensor;
         packages.hphi = pkgs-hphi;
-        packages.quantum-espresso = pkgs-quantum-espresso;
-        devShells.default = pkgs.mkShell rec {
-          packages = shell-pkgs;
-          ZSH_COMP_FPATH = "${zshCompEnv}/share/zsh/site-functions";
+        #packages.quantum-espresso = pkgs-quantum-espresso;
+        devShells = pkgs.alt-shell.mkCommonShells { } {
+          packages = [
+            #pkgs-itensor
+            #pkgs-hphi
+            #pkgs-quantum-espresso
+            #pkgs.pkg-config
+            #pkgs.cmake
+          ];
         };
       });
 }
