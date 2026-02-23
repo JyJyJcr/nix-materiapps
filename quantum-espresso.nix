@@ -1,6 +1,6 @@
-{ lib, gccStdenv, fetchFromGitLab, fetchFromGitHub, git, cmake, gfortran
+{ lib, stdenv, fetchFromGitLab, fetchFromGitHub, git, cmake, gfortran
 , pkg-config, fftw, blas, lapack, scalapack, hdf5-fortran, libxc
-, enableMpi ? false, mpi,
+, enableMpi ? true, mpi,
 # wannier90, libmbd,
 }:
 
@@ -46,15 +46,15 @@ let
     };
   };
 
-in gccStdenv.mkDerivation rec {
+in stdenv.mkDerivation rec {
   version = "7.4.1";
   pname = "quantum-espresso";
 
   src = fetchFromGitHub {
     owner = "JyJyJcr";
     repo = "q-e";
-    rev = "7fe8102023e5ba60f0d3378dc2e72ad12343ae4c";
-    hash = "sha256-8Y5LLbEdFU5uzkK4SlrXeYMVtVD9K88nrlZOE/ceyDs=";
+    rev = "9cb5f5f487af36ec5f744bf4e884241643d008ba";
+    hash = "sha256-rOkl/oM5rQHmUGr0WRw3f6ljkbdCCpOXgduD84XfA98=";
   };
 
   # add git submodules manually and fix pkg-config file
@@ -86,7 +86,6 @@ in gccStdenv.mkDerivation rec {
   patches = [
     # this patch reverts commit 5fb5a679, which enforced static library builds.
     ./findLibxc.patch
-    ./link.patch
   ];
 
   outputs = [ "out" "dev" ];
@@ -99,34 +98,37 @@ in gccStdenv.mkDerivation rec {
     fftw
     blas
     lapack
+    #wannier90
+    #libmbd
     libxc
     hdf5-fortran
-  ]
-  # ++ lib.optionals stdenv.cc.isClang [
-  #   # TODO: This may mismatch the LLVM version sin the stdenv, see #79818.
-  #   # llvmPackages.openmp
-  # ]
-    ++ lib.optional enableMpi scalapack;
-
-  #    ++ lib.optional enableMpi mpi;
+  ] ++ lib.optional enableMpi scalapack;
 
   propagatedBuildInputs = lib.optional enableMpi mpi;
   propagatedUserEnvPkgs = lib.optional enableMpi mpi;
 
   cmakeFlags = [
     "-DBUILD_SHARED_LIBS=ON"
-    "-DBLA_PREFER_PKGCONFIG=ON"
-    "-DQE_ENABLE_OPENMP=OFF"
-    "-DQE_ENABLE_LIBXC=OFF"
-    "-DQE_ENABLE_HDF5=OFF"
+    #"-DWANNIER90_ROOT=${wannier90}"
+    #"-DMBD_ROOT=${libmbd}"
+
+    "-DQE_ENABLE_OPENMP=ON"
+    "-DQE_ENABLE_LIBXC=ON"
+    "-DQE_ENABLE_HDF5=ON"
     "-DQE_ENABLE_PLUGINS=pw2qmcpack"
   ] ++ (lib.optionals enableMpi [
     "-DQE_ENABLE_MPI=ON"
     "-DQE_ENABLE_MPI_MODULE=ON"
     "-DQE_ENABLE_SCALAPACK=ON"
-  ]) ++ (lib.optionals (!enableMpi) [ "-DQE_ENABLE_MPI=OFF" ]);
+  ]) ++ (lib.optionals (!enableMpi) [ "-DQE_ENABLE_MPI=OFF" ])
 
-  meta = with lib; {
+    ++ (lib.optionals stdenv.isDarwin [
+      "-DBLA_PREFER_PKGCONFIG=ON" # avoid linking against Accelerate.framework
+    ]) ++ (lib.optionals (stdenv.isDarwin && stdenv.isAarch64) [
+      "-DCMAKE_Fortran_FLAGS=-fstack-use-cumulative-args" # workaround of arm64-darwin ABI issue of nixpkgs gcc; see https://github.com/NixOS/nixpkgs/issues/481285
+    ]);
+
+  meta = {
     description =
       "Electronic-structure calculations and materials modeling at the nanoscale";
     longDescription = ''
@@ -136,6 +138,6 @@ in gccStdenv.mkDerivation rec {
       pseudopotentials.
     '';
     homepage = "https://www.quantum-espresso.org/";
-    license = licenses.gpl2;
+    license = lib.licenses.gpl2;
   };
 }
